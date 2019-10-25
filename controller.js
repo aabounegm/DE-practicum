@@ -15,7 +15,7 @@ export default class ChartController {
 			h: { el: document.getElementById('h'), val: h },
 		};
 
-		this.registerListeners();
+		this._registerListeners();
 	}
 
 	buildChart() {
@@ -47,7 +47,7 @@ export default class ChartController {
 		});
 	}
 
-	registerListeners() {
+	_registerListeners() {
 		for (let obj of Object.values(this.vars)) {
 			obj.el.value = obj.val;
 			obj.el.addEventListener('input', (event) => {
