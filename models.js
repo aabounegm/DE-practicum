@@ -1,4 +1,4 @@
-class NumericalMethods {
+export default class NumericalMethods {
 	constructor(f, config) {
 		if (typeof f !== 'function')
 			throw 'Please pass a function to the constructor';

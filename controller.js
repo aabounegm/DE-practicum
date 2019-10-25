@@ -1,4 +1,6 @@
-class ChartController {
+import NumericalMethods from './models.js';
+
+export default class ChartController {
 	constructor(f, { x0, y0, X, h } = {}) {
 		this.f = f;
 

@@ -1,3 +1,5 @@
+import ChartController from './controller.js';
+
 function f(x, y) {
 	return 1 + 2 * y / x;
 }
