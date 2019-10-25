@@ -1,4 +1,21 @@
-export default class NumericalMethods {
+export class DifferentialFunction {
+	constructor(actual, derivative) {
+		this._actual = actual;
+		this._df = derivative;
+	}
+	exact(x) {
+		if (arguments.length !== 1)
+			throw 'f is a function of x only!';
+		return this._actual(x);
+	}
+	derivative(x, y) {
+		if (arguments.length !== 2)
+			throw 'f\' is in terms of x and y';
+		return this._df(x, y);
+	}
+}
+
+export class NumericalMethods {
 	constructor(f, config) {
 		if (typeof f !== 'function')
 			throw 'Please pass a function to the constructor';

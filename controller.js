@@ -1,8 +1,8 @@
-import NumericalMethods from './models.js';
+import { NumericalMethods, DifferentialFunction } from './models.js';
 
 export default class ChartController {
-	constructor(f, { x0, y0, X, h } = {}) {
-		this.f = f;
+	constructor(funcs, { x0, y0, X, h } = {}) {
+		this.funcs = funcs;
 
 		Chart.defaults.global.elements.line.fill = false;
 		this.ctx = document.getElementById('graph').getContext('2d');
@@ -21,11 +21,16 @@ export default class ChartController {
 	buildChart() {
 		if (this.chart)
 			this.chart.destroy();
-		let methods = new NumericalMethods(this.f, {
+
+		const config = {
 			x0: this.vars.x0.val,
 			y0: this.vars.y0.val,
 			X: this.vars.X.val,
 			h: this.vars.h.val,
+		};
+
+		const methods = new NumericalMethods(this.funcs.derivative.bind(this.funcs), config);
+
 		const domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
 			(_, i) => (i * config.h + config.x0).toFixed(5));
 
