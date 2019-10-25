@@ -69,9 +69,9 @@ export class NumericalMethods {
 		let data = [];
 		while (x0 <= X) {
 			data.push({ x: x0, y: y0 });
-			let val = f(x0, y0, h);
-			x0 = val.x;
-			y0 = val.y;
+			const { x, y } = f(x0, y0, h);
+			x0 = x;
+			y0 = y;
 		}
 		return data;
 	}
