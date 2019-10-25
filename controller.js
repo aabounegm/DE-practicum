@@ -26,19 +26,22 @@ export default class ChartController {
 			y0: this.vars.y0.val,
 			X: this.vars.X.val,
 			h: this.vars.h.val,
-		});
+		const domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
+			(_, i) => (i * config.h + config.x0).toFixed(5));
 
-		let data = methods.eulerWrapped();
-		let data2 = methods.rungeKutta();
+		const euler = methods.euler();
+		// const improvedEuler = methods.improvedEuler();
+		const runge = methods.rungeKutta();
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
 			data: {
-				labels: data2.map(a => a.x.toFixed(5)),
+				labels: domain,
 				datasets: [
-					{ data: data.map(a => a.y), label: 'Euler', },
-					{ data: data2.map(a => a.y), label: 'runge' },
-					{ data: data2.map(a => this.f(a.x, a.y)), label: 'exact' },
+					{ data: euler, label: 'Euler', },
+					// { data: improvedEuler, label: 'Improved-Euler', },
+					{ data: runge, label: 'Runge' },
+					{ data: domain.map(x => this.funcs.exact(x)), label: 'Exact' },
 				],
 			},
 		});

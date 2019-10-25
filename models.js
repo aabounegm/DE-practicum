@@ -11,27 +11,13 @@ export default class NumericalMethods {
 		}
 	}
 
-	euler({ x0, y0, X, h }) {
-		if (h == 0)
-			return;
-		let data = [];
-		while (x0 <= X) {
-			data.push({ x: x0, y: y0 });
-			y0 += h * this.f(x0, y0);
-			x0 += h;
-		}
-		data.push({ x: x0, y: y0 });
-		return data;
-	}
-
 	eulerStep(x, y, h) {
 		return {
 			y: y + h * this.f(x, y),
 			x: x + h,
 		};
 	}
-
-	eulerWrapped(config) {
+	euler(config) {
 		return this._wrap(this.eulerStep.bind(this), { ...config });
 	}
 
