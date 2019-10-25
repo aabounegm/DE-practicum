@@ -32,7 +32,7 @@ export default class NumericalMethods {
 		const k3 = h * this.f(x + h / 2, y + k2 / 2);
 		const k4 = h * this.f(x + h, y + k3);
 		return {
-			y: (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4),
+			y: y + (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4),
 			x: x + h,
 		};
 	}
