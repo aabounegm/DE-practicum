@@ -35,7 +35,7 @@ export default class ChartController {
 			(_, i) => (i * config.h + config.x0).toFixed(5));
 
 		const euler = methods.euler();
-		// const improvedEuler = methods.improvedEuler();
+		const improvedEuler = methods.improvedEuler();
 		const runge = methods.rungeKutta();
 
 		this.chart = new Chart(this.ctx, {
@@ -44,9 +44,9 @@ export default class ChartController {
 				labels: domain,
 				datasets: [
 					{ data: euler, label: 'Euler', },
-					// { data: improvedEuler, label: 'Improved-Euler', },
+					{ data: improvedEuler, label: 'Improved-Euler', },
 					{ data: runge, label: 'Runge' },
-					{ data: domain.map(x => this.funcs.exact(x)), label: 'Exact' },
+					{ data: domain.map(x => this.funcs.exact(parseFloat(x))), label: 'Exact' },
 				],
 			},
 		});

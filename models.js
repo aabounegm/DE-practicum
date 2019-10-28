@@ -38,9 +38,16 @@ export class NumericalMethods {
 		return this._wrap(this.eulerStep.bind(this), { ...config });
 	}
 
-
-	improvedEuler({ }) {
-
+	improvedEulerStep(x, y, h) {
+		const k1 = this.f(x, y);
+		const k2 = this.f(x + h, y + h * k1);
+		return {
+			y: y + (h / 2) * (k1 + k2),
+			x: x + h,
+		};
+	}
+	improvedEuler(config) {
+		return this._wrap(this.improvedEulerStep.bind(this), { ...config });
 	}
 
 	rungeKuttaStep(x, y, h) {
