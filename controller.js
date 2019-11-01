@@ -3,6 +3,8 @@ import { NumericalMethods, DifferentialFunction } from './models.js';
 // @ts-ignore
 var Chart = window.Chart;
 
+const eventManager = new EventTarget();
+
 export default class ChartController {
 	/**
 	 * 
@@ -27,6 +29,14 @@ export default class ChartController {
 			h: { el: hEl || document.getElementById('h'), val: h },
 		};
 
+		/**
+		 * @typedef {import('./models').point} point
+		 */
+
+		/** @type {point[]} */  this.eulerData = [];
+		/** @type {point[]} */  this.improvedEulerData = [];
+		/** @type {point[]} */  this.rungeData = [];
+
 		this._registerListeners();
 	}
 
@@ -49,18 +59,19 @@ export default class ChartController {
 		const domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
 			(_, i) => (i * config.h + config.x0).toFixed(5));
 
-		const euler = methods.euler();
-		const improvedEuler = methods.improvedEuler();
-		const runge = methods.rungeKutta();
+		this.eulerData = methods.euler();
+		this.improvedEulerData = methods.improvedEuler();
+		this.rungeData = methods.rungeKutta();
+		eventManager.dispatchEvent(new Event('chartDataUpdated'));
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
 			data: {
 				labels: domain,
 				datasets: [
-					{ data: euler, label: 'Euler', },
-					{ data: improvedEuler, label: 'Improved-Euler', },
-					{ data: runge, label: 'Runge' },
+					{ data: this.eulerData, label: 'Euler', },
+					{ data: this.improvedEulerData, label: 'Improved-Euler', },
+					{ data: this.rungeData, label: 'Runge' },
 					{ data: domain.map(x => this.funcs.exact(parseFloat(x))), label: 'Exact' },
 				],
 			},
