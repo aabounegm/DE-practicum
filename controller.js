@@ -1,11 +1,21 @@
 import { NumericalMethods, DifferentialFunction } from './models.js';
+/**
+ * @typedef {import('./models').point} point
+ */
 
 // @ts-ignore
 var Chart = window.Chart;
+Chart.defaults.global.elements.line.fill = false;
 
+/** Used to handle communication between the main graph and the error graph */
 const eventManager = new EventTarget();
 
-export default class ChartController {
+// TODO: convert the classes into singletons
+
+/**
+ * Manages the interface of the main chart
+ */
+export class ChartController {
 	/**
 	 * 
 	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute )
@@ -14,8 +24,6 @@ export default class ChartController {
 	 */
 	constructor(funcs, { x0 = 0, y0 = 0, X = 1, h = 0.1 } = {}, { x0El, y0El, XEl, hEl } = {}) {
 		this.funcs = funcs;
-
-		Chart.defaults.global.elements.line.fill = false;
 
 		// @ts-ignore
 		this.ctx = document.getElementById('graph').getContext('2d');
@@ -29,13 +37,11 @@ export default class ChartController {
 			h: { el: hEl || document.getElementById('h'), val: h },
 		};
 
-		/**
-		 * @typedef {import('./models').point} point
-		 */
-
 		/** @type {point[]} */  this.eulerData = [];
 		/** @type {point[]} */  this.improvedEulerData = [];
-		/** @type {point[]} */  this.rungeData = [];
+		/** @type {point[]} */  this.rungeKuttaData = [];
+		/** @type {point[]} */  this.exactData = [];
+		/** @type {number[]} */ this.domain = [];
 
 		this._registerListeners();
 	}
@@ -56,23 +62,26 @@ export default class ChartController {
 
 		const methods = new NumericalMethods(this.funcs.derivative.bind(this.funcs), config);
 
-		const domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
-			(_, i) => (i * config.h + config.x0).toFixed(5));
+		this.domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
+			(_, i) => (i * config.h + config.x0));
+		const xLabels = this.domain.map(x => x.toFixed(5));
 
 		this.eulerData = methods.euler();
 		this.improvedEulerData = methods.improvedEuler();
-		this.rungeData = methods.rungeKutta();
+		this.rungeKuttaData = methods.rungeKutta();
+		this.exactData = this.domain.map(x => ({ x, y: this.funcs.exact(x) }));
+
 		eventManager.dispatchEvent(new Event('chartDataUpdated'));
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
 			data: {
-				labels: domain,
+				labels: xLabels,
 				datasets: [
-					{ data: this.eulerData, label: 'Euler', },
-					{ data: this.improvedEulerData, label: 'Improved-Euler', },
-					{ data: this.rungeData, label: 'Runge' },
-					{ data: domain.map(x => this.funcs.exact(parseFloat(x))), label: 'Exact' },
+					{ data: this.eulerData, label: 'Euler', borderColor: 'aqua', },
+					{ data: this.improvedEulerData, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: this.rungeKuttaData, label: 'Runge-Kutta', borderColor: 'brown' },
+					{ data: this.exactData, label: 'Exact', borderColor: 'black' },
 				],
 			},
 		});
@@ -89,5 +98,58 @@ export default class ChartController {
 				this.buildChart();
 			});
 		}
+	}
+}
+
+/**
+ * Manages the chart for showing the local error
+ */
+export class TruncationError {
+	/**
+	 * Initializes connection to 
+	 * @param {ChartController} controller Required to easily access the latest data
+	 */
+	constructor(controller) {
+		// @ts-ignore
+		this.ctx = document.getElementById('local-error').getContext('2d');
+		this.values = controller;
+		this.chart = null;
+
+		this._registerListeners();
+	}
+
+	buildChart() {
+		if (this.chart)
+			this.chart.destroy();
+
+		const { domain, exactData, eulerData, improvedEulerData, rungeKuttaData } = this.values;
+		const xLabels = domain.map(x => x.toFixed(5));
+
+		/**
+		 * Calculates the difference between the given point and the exact solution
+		 * @param {point} param0 
+		 * @param {number} index
+		 */
+		const diff = ({ x, y }, index) => ({ x, y: exactData[index].y - y });
+
+		const eulerDiff = eulerData.map(diff);
+		const improvedEulerDiff = improvedEulerData.map(diff);
+		const rungeKuttaDiff = rungeKuttaData.map(diff);
+
+		this.chart = new Chart(this.ctx, {
+			type: 'line',
+			data: {
+				labels: xLabels,
+				datasets: [
+					{ data: eulerDiff, label: 'Euler', borderColor: 'aqua', },
+					{ data: improvedEulerDiff, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: rungeKuttaDiff, label: 'Runge-Kutta', borderColor: 'brown' },
+				],
+			},
+		});
+	}
+
+	_registerListeners() {
+		eventManager.addEventListener('chartDataUpdated', this.buildChart.bind(this));
 	}
 }
