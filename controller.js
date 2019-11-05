@@ -1,7 +1,9 @@
-import { NumericalMethods, DifferentialFunction } from './models.js';
 /**
- * @typedef {import('./models').point} point
+ * @file Controller that uses the models in [models.js](./models.js) and connects to the View (HTML)
+ * @typedef { import('./models').point } point
  */
+
+import { Euler, ImprovedEuler, RungeKutta, DifferentialFunction } from './models.js';
 
 // @ts-ignore
 var Chart = window.Chart;
@@ -60,15 +62,17 @@ export class ChartController {
 			h: this.vars.h.val,
 		};
 
-		const methods = new NumericalMethods(this.funcs.derivative.bind(this.funcs), config);
+		const euler = new Euler(this.funcs.derivative.bind(this.funcs), config);
+		const improvedEuler = new ImprovedEuler(this.funcs.derivative.bind(this.funcs), config);
+		const rungeKutta = new RungeKutta(this.funcs.derivative.bind(this.funcs), config);
 
 		this.domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
 			(_, i) => (i * config.h + config.x0));
 		const xLabels = this.domain.map(x => x.toFixed(5));
 
-		this.eulerData = methods.euler();
-		this.improvedEulerData = methods.improvedEuler();
-		this.rungeKuttaData = methods.rungeKutta();
+		this.eulerData = euler();
+		this.improvedEulerData = improvedEuler();
+		this.rungeKuttaData = rungeKutta();
 		this.exactData = this.domain.map(x => ({ x, y: this.funcs.exact(x) }));
 
 		eventManager.dispatchEvent(new Event('chartDataUpdated'));
