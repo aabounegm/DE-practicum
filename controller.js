@@ -202,9 +202,9 @@ export class GlobalError extends ChartController {
 			data: {
 				labels: xLabels,
 				datasets: [
-					{ data: euler, label: 'Euler', borderColor: 'aqua', },
-					{ data: improvedEuler, label: 'Improved-Euler', borderColor: 'lime' },
-					{ data: rungeKutta, label: 'Runge-Kutta', borderColor: 'brown' },
+					{ data: this.euler, label: 'Euler', borderColor: 'aqua', },
+					{ data: this.improvedEuler, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: this.rungeKutta, label: 'Runge-Kutta', borderColor: 'brown' },
 				],
 			},
 			options: {
