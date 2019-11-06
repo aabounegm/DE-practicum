@@ -45,8 +45,8 @@ export class SolutionGraph extends ChartController {
 	/**
 	 * @param {HTMLCanvasElement} canvas
 	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute
-	 * @param {Object<string, number>} values The parameters based on which to calculate the approximations
-	 * @param {Object<string, HTMLInputElement>} elements The input elements to listen for changes on
+	 * @param {Object<string, number>} [values] The parameters based on which to calculate the approximations
+	 * @param {Object<string, HTMLInputElement>} [elements] The input elements to listen for changes on
 	 */
 	constructor(canvas, funcs, { x0 = 0, y0 = 0, X = 1, h = 0.1 } = {}, { x0El, y0El, XEl, hEl } = {}) {
 		/** @type {Object<String, {el: HTMLInputElement, val: number}>} */
@@ -54,7 +54,7 @@ export class SolutionGraph extends ChartController {
 			x0: { el: x0El || document.getElementById('x0'), val: x0 },
 			y0: { el: y0El || document.getElementById('y0'), val: y0 },
 			X: { el: XEl || document.getElementById('X'), val: X },
-			h: { el: hEl || document.getElementById('h'), val: h },
+			N: { el: hEl || document.getElementById('N'), val: h },
 		};
 		super(canvas, vars);
 
@@ -89,7 +89,8 @@ export class SolutionGraph extends ChartController {
 			x0: this.vars.x0.val,
 			y0: this.vars.y0.val,
 			X: this.vars.X.val,
-			h: this.vars.h.val,
+			N: this.vars.N.val,
+			h: (this.vars.X.val - this.vars.x0.val) / this.vars.N.val,
 		};
 
 		const euler = new Euler(this.funcs.derivative.bind(this.funcs), config);
