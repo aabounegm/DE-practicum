@@ -15,22 +15,22 @@ export class DifferentialFunction {
 	 */
 	/**
 	 * @callback derivative
-	 * @param {number} x
-	 * @param {number} y
-	 * @returns {number}
+	 * @param {number} x x
+	 * @param {number} y y
+	 * @returns {number} y'(x,y)
 	 */
 
 	/**
 	 * Constructor
-	 * @param { actualFunction } actual The solution of the differential equation 
+	 * @param { actualFunction } exact The solution of the differential equation 
 	 * @param { derivative } derivative The expression y'(x, y)
 	 */
-	constructor(actual, derivative) {
+	constructor(exact, derivative) {
 		/**
 		 * @private
 		 * @const
 		 */
-		this._actual = actual;
+		this._actual = exact;
 
 		/** 
 		 * @private
@@ -41,7 +41,7 @@ export class DifferentialFunction {
 
 	/**
 	 * A method that gets the value of the actual solution at the input [x]
-	 * @param {number} x 
+	 * @param {number} x x
 	 * @returns {number} y
 	 */
 	exact(x) {
@@ -52,9 +52,9 @@ export class DifferentialFunction {
 
 	/**
 	 * A method that gets the value of y'(x, y)
-	 * @param {number} x
-	 * @param {number} y
-	 * @returns {number}
+	 * @param {number} x x
+	 * @param {number} y y
+	 * @returns {number} y'(x,y)
 	 */
 	derivative(x, y) {
 		if (arguments.length !== 2)
