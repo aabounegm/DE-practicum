@@ -12,40 +12,70 @@ Chart.defaults.global.elements.line.fill = false;
 /** Used to handle communication between the main graph and the error graph */
 const eventManager = new EventTarget();
 
-// TODO: convert the classes into singletons
+/**
+ * Generalization of a controller that accepts an HTML element to draw a graph on
+ * @abstract
+ */
+class ChartController {
+	/**
+	 * Initializes common actions
+	 * @param {HTMLCanvasElement} canvas The Canvas element to draw the chart in
+	 * @param {...any} args Included to allow subclasses to add any parameters needed
+	 */
+	constructor(canvas, ...args) {
+		if (new.target === ChartController) throw new TypeError('Cannot instantiate abstract class');
+		this.ctx = canvas.getContext('2d');
+		this.chart = null;
+		this._registerListeners(...args);
+	}
+	/** @param {...any} args Included to allow subclasses to add any parameters needed */
+	getData(...args) { }
+
+	/** @param {...any} args Included to allow subclasses to add any parameters needed */
+	buildChart(...args) { throw new TypeError('Not implemented'); }
+
+	/** @param {...any} args Included to allow subclasses to add any parameters needed */
+	_registerListeners(...args) { }
+}
 
 /**
  * Manages the interface of the main chart
  */
-export class ChartController {
+export class SolutionGraph extends ChartController {
 	/**
-	 * 
-	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute )
+	 * @param {HTMLCanvasElement} canvas
+	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute
 	 * @param {Object<string, number>} values The parameters based on which to calculate the approximations
 	 * @param {Object<string, HTMLInputElement>} elements The input elements to listen for changes on
 	 */
-	constructor(funcs, { x0 = 0, y0 = 0, X = 1, h = 0.1 } = {}, { x0El, y0El, XEl, hEl } = {}) {
-		this.funcs = funcs;
-
-		// @ts-ignore
-		this.ctx = document.getElementById('graph').getContext('2d');
-		this.chart = null;
-
+	constructor(canvas, funcs, { x0 = 0, y0 = 0, X = 1, h = 0.1 } = {}, { x0El, y0El, XEl, hEl } = {}) {
 		/** @type {Object<String, {el: HTMLInputElement, val: number}>} */
-		this.vars = {
+		const vars = {
 			x0: { el: x0El || document.getElementById('x0'), val: x0 },
 			y0: { el: y0El || document.getElementById('y0'), val: y0 },
 			X: { el: XEl || document.getElementById('X'), val: X },
 			h: { el: hEl || document.getElementById('h'), val: h },
 		};
+		super(canvas, vars);
+
+		this.vars = vars;
+		this.funcs = funcs;
 
 		/** @type {point[]} */  this.eulerData = [];
 		/** @type {point[]} */  this.improvedEulerData = [];
 		/** @type {point[]} */  this.rungeKuttaData = [];
 		/** @type {point[]} */  this.exactData = [];
 		/** @type {number[]} */ this.domain = [];
+	}
 
-		this._registerListeners();
+	getData() {
+		return {
+			euler: this.eulerData,
+			improvedEuler: this.improvedEulerData,
+			rungeKutta: this.rungeKuttaData,
+			exact: this.exactData,
+			domain: this.domain,
+		};
 	}
 
 	/**
@@ -75,10 +105,32 @@ export class ChartController {
 		this.rungeKuttaData = rungeKutta();
 		this.exactData = this.domain.map(x => ({ x, y: this.funcs.exact(x) }));
 
-		eventManager.dispatchEvent(new Event('chartDataUpdated'));
+		eventManager.dispatchEvent(new CustomEvent('approximationsUpdated', {
+			detail: { ...this.getData(), config, },
+		}));
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
+			options: {
+				title: {
+					text: 'Solution vs approximations',
+					display: true,
+				},
+				scales: {
+					xAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'X',
+						},
+					}],
+					yAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'f(x)',
+						},
+					}],
+				},
+			},
 			data: {
 				labels: xLabels,
 				datasets: [
@@ -91,8 +143,8 @@ export class ChartController {
 		});
 	}
 
-	_registerListeners() {
-		for (let obj of Object.values(this.vars)) {
+	_registerListeners(vars) {
+		for (let obj of Object.values(vars)) {
 			obj.el.value = obj.val;
 			obj.el.addEventListener('input', (event) => {
 				let input = parseFloat(event.target.value);
@@ -106,54 +158,78 @@ export class ChartController {
 }
 
 /**
- * Manages the chart for showing the local error
+ * Manages the chart for showing the global error
  */
-export class TruncationError {
-	/**
-	 * Initializes connection to 
-	 * @param {ChartController} controller Required to easily access the latest data
-	 */
-	constructor(controller) {
-		// @ts-ignore
-		this.ctx = document.getElementById('local-error').getContext('2d');
-		this.values = controller;
-		this.chart = null;
-
-		this._registerListeners();
+export class GlobalError extends ChartController {
+	constructor(canvas) {
+		super(canvas);
+		/** @type {point[]} */ this.euler = [];
+		/** @type {point[]} */ this.improvedEuler = [];
+		/** @type {point[]} */ this.rungeKutta = [];
 	}
 
-	buildChart() {
+	getData() {
+		const { euler, improvedEuler, rungeKutta } = this;
+		return { euler, improvedEuler, rungeKutta };
+	}
+
+	buildChart(eventData) {
+		const data = eventData.detail;
 		if (this.chart)
 			this.chart.destroy();
 
-		const { domain, exactData, eulerData, improvedEulerData, rungeKuttaData } = this.values;
+		const { domain, exact, euler, improvedEuler, rungeKutta, config } = data;
 		const xLabels = domain.map(x => x.toFixed(5));
 
 		/**
 		 * Calculates the difference between the given point and the exact solution
-		 * @param {point} param0 
+		 * @param {point} item
 		 * @param {number} index
 		 */
-		const diff = ({ x, y }, index) => ({ x, y: exactData[index].y - y });
+		const diff = ({ x, y }, index) => ({ x, y: exact[index].y - y });
 
-		const eulerDiff = eulerData.map(diff);
-		const improvedEulerDiff = improvedEulerData.map(diff);
-		const rungeKuttaDiff = rungeKuttaData.map(diff);
+		this.euler = euler.map(diff);
+		this.improvedEuler = improvedEuler.map(diff);
+		this.rungeKutta = rungeKutta.map(diff);
+
+		eventManager.dispatchEvent(new CustomEvent('errorsUpdated', {
+			detail: this.getData(),
+		}));
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
 			data: {
 				labels: xLabels,
 				datasets: [
-					{ data: eulerDiff, label: 'Euler', borderColor: 'aqua', },
-					{ data: improvedEulerDiff, label: 'Improved-Euler', borderColor: 'lime' },
-					{ data: rungeKuttaDiff, label: 'Runge-Kutta', borderColor: 'brown' },
+					{ data: euler, label: 'Euler', borderColor: 'aqua', },
+					{ data: improvedEuler, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: rungeKutta, label: 'Runge-Kutta', borderColor: 'brown' },
 				],
+			},
+			options: {
+				title: {
+					text: 'Global error',
+					display: true,
+				},
+				scales: {
+					xAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'N',
+						},
+					}],
+					yAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'Last global error',
+						},
+					}],
+				},
 			},
 		});
 	}
 
 	_registerListeners() {
-		eventManager.addEventListener('chartDataUpdated', this.buildChart.bind(this));
+		eventManager.addEventListener('approximationsUpdated', this.buildChart.bind(this));
 	}
 }
