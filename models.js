@@ -115,7 +115,7 @@ export class NumericalMethod extends Function {
 	/**
 	 * Makes the object callable. Should perform the calculation according to config object.
 	 * @param {Config} [config] Override configuration passed in constructor
-	 * @returns {point[]}
+	 * @returns {point[]} The result of taking a step in the numerical method, as implemented in `step` method
 	 */
 	__call__(config) {
 		let { x0, y0, X, h } = {
@@ -152,6 +152,13 @@ export class NumericalMethod extends Function {
  * Implementation of Euler method
  */
 export class Euler extends NumericalMethod {
+	/**
+	 * Represents taking one step of the Euler method
+	 * @param {number} x x-coordinate of the given point
+	 * @param {number} y y-coordinate of the given point
+	 * @param {number} h step to move [x] by
+	 * @returns {point} An object containing the next values of x and y
+	 */
 	step(x, y, h) {
 		return {
 			y: y + h * this.df(x, y),
@@ -164,6 +171,13 @@ export class Euler extends NumericalMethod {
  * Implementation of Improved-Euler method
  */
 export class ImprovedEuler extends NumericalMethod {
+	/**
+	 * Represents taking one step of the Improved-Euler method
+	 * @param {number} x x-coordinate of the given point
+	 * @param {number} y y-coordinate of the given point
+	 * @param {number} h step to move [x] by
+	 * @returns {point} An object containing the next values of x and y
+	 */
 	step(x, y, h) {
 		const k1 = this.df(x, y);
 		const k2 = this.df(x + h, y + h * k1);
@@ -178,6 +192,13 @@ export class ImprovedEuler extends NumericalMethod {
  * Implementation of Runge-Kutta method
  */
 export class RungeKutta extends NumericalMethod {
+	/**
+	 * Represents taking one step of the Runge-Kutta method
+	 * @param {number} x x-coordinate of the given point
+	 * @param {number} y y-coordinate of the given point
+	 * @param {number} h step to move [x] by
+	 * @returns {point} An object containing the next values of x and y
+	 */
 	step(x, y, h) {
 		const k1 = h * this.df(x, y);
 		const k2 = h * this.df(x + h / 2, y + k1 / 2);

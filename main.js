@@ -32,6 +32,6 @@ const localErrorGraph = document.getElementById('local-error');
 
 const controller = new SolutionGraph(mainGraph, functions, initialValues);
 const globalErrorController = new GlobalError(globalErrorGraph, functions);
-const localErrorController = new LocalError(localErrorGraph, functions);
+const localErrorController = new LocalError(localErrorGraph);
 
 controller.buildChart();

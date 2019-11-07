@@ -18,7 +18,7 @@ const eventManager = new EventTarget();
  */
 class ChartController {
 	/**
-	 * Initializes common actions
+	 * Initializes common actions for all charts
 	 * @param {HTMLCanvasElement} canvas The Canvas element to draw the chart in
 	 * @param {...any} args Included to allow subclasses to add any parameters needed
 	 */
@@ -144,6 +144,10 @@ export class SolutionGraph extends ChartController {
 		});
 	}
 
+	/**
+	 * Registers listeners to changes on input to update the respective variables and the chart
+	 * @param {Object<String, {el: HTMLInputElement, val: number}>} vars Object containing HTML input elements and their respective initial values 
+	 */
 	_registerListeners(vars) {
 		for (let obj of Object.values(vars)) {
 			obj.el.value = obj.val;
@@ -159,22 +163,26 @@ export class SolutionGraph extends ChartController {
 }
 
 /**
- * Manages the chart for showing the global error
+ * Specific functionality common to Error graphs
+ * @abstract
  */
-export class GlobalError extends ChartController {
+class ErrorChartController extends ChartController {
 	/**
-	 * @param {HTMLCanvasElement} canvas
-	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute
+	 * Initializes local data
+	 * @param {HTMLCanvasElement} canvas Element to draw the chart on
 	 */
-	constructor(canvas, funcs) {
+	constructor(canvas) {
 		super(canvas);
-		this.funcs = funcs;
-		this.N = 0;
+
 		/** @type {point[]} */ this.eulerData = [];
 		/** @type {point[]} */ this.improvedEulerData = [];
 		/** @type {point[]} */ this.rungeKuttaData = [];
 	}
 
+	/**
+	 * Returns the data currently held in the object
+	 * @returns {Object<string, point[]>}
+	 */
 	getData() {
 		return {
 			euler: this.eulerData,
@@ -183,11 +191,34 @@ export class GlobalError extends ChartController {
 		};
 	}
 
+	/**
+	 * Registers listener to changes in approximation chart updates to update error
+	 */
+	_registerListeners() {
+		eventManager.addEventListener('approximationsUpdated', this.buildChart.bind(this));
+	}
+}
+
+/**
+ * Manages the chart for showing the global error
+ */
+export class GlobalError extends ErrorChartController {
+	/**
+	 * @param {HTMLCanvasElement} canvas
+	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute
+	 */
+	constructor(canvas, funcs) {
+		super(canvas);
+		this.funcs = funcs;
+	}
+
+	/**
+	 * Updates the chart whenever the steps count gets updated
+	 * @param {Object} eventData Contains the updated configuration, along with the new function data
+	 */
 	buildChart(eventData) {
 		const data = eventData.detail;
 		const { exact, config } = data;
-		if (config.N === this.N) return;
-		this.N = config.N;
 		if (this.chart)
 			this.chart.destroy();
 
@@ -197,11 +228,15 @@ export class GlobalError extends ChartController {
 
 		const domain = Array.from({ length: config.N }, (_, i) => i + 1);
 
-		this.eulerData = [];
-		this.improvedEulerData = [];
-		this.rungeKuttaData = [];
+		/** @type {point[]} */ this.eulerData = [];
+		/** @type {point[]} */ this.improvedEulerData = [];
+		/** @type {point[]} */ this.rungeKuttaData = [];
 
 		domain.forEach(N => {
+			/**
+			 * For the N in the closure, returns the difference between the solution and given approximation
+			 * @param {point[]} dataset 
+			 */
 			const diff = (dataset) => ({
 				x: N,
 				y: exact[N - 1].y - dataset[N - 1].y
@@ -250,20 +285,16 @@ export class GlobalError extends ChartController {
 			},
 		});
 	}
-
-	_registerListeners() {
-		eventManager.addEventListener('approximationsUpdated', this.buildChart.bind(this));
-	}
 }
 
-export class LocalError extends ChartController {
-	getData() {
-		return {
-			euler: this.eulerData,
-			improvedEuler: this.improvedEulerData,
-			rungeKutta: this.rungeKuttaData
-		};
-	}
+/**
+ * Manages the chart for showing the local error
+ */
+export class LocalError extends ErrorChartController {
+	/**
+	 * Updates the chart whenever the control variables get updated
+	 * @param {Object} eventData Contains the updated configuration, along with the new function data
+	 */
 	buildChart(eventData) {
 		const data = eventData.detail;
 		if (this.chart)
@@ -323,9 +354,5 @@ export class LocalError extends ChartController {
 				},
 			},
 		});
-	}
-
-	_registerListeners() {
-		eventManager.addEventListener('approximationsUpdated', this.buildChart.bind(this));
 	}
 }
