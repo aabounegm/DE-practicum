@@ -10,7 +10,7 @@ const initialValues = {
 	x0: 1,
 	y0: 2,
 	X: 10,
-	h: 0.1,
+	N: 20,
 };
 
 const f = (x) => 3 * (x ** 2) - x;

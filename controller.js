@@ -48,13 +48,13 @@ export class SolutionGraph extends ChartController {
 	 * @param {Object<string, number>} [values] The parameters based on which to calculate the approximations
 	 * @param {Object<string, HTMLInputElement>} [elements] The input elements to listen for changes on
 	 */
-	constructor(canvas, funcs, { x0 = 0, y0 = 0, X = 1, h = 0.1 } = {}, { x0El, y0El, XEl, hEl } = {}) {
+	constructor(canvas, funcs, { x0 = 0, y0 = 0, X = 1, N = 20 } = {}, { x0El, y0El, XEl, hEl } = {}) {
 		/** @type {Object<String, {el: HTMLInputElement, val: number}>} */
 		const vars = {
 			x0: { el: x0El || document.getElementById('x0'), val: x0 },
 			y0: { el: y0El || document.getElementById('y0'), val: y0 },
 			X: { el: XEl || document.getElementById('X'), val: X },
-			N: { el: hEl || document.getElementById('N'), val: h },
+			N: { el: hEl || document.getElementById('N'), val: N },
 		};
 		super(canvas, vars);
 
