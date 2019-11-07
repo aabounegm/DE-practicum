@@ -12,25 +12,37 @@
 
 <body>
 
-	<section class="main-graph">
-		<canvas id="graph"></canvas>
-	</section>
+	<div class="container">
+		<section class="inputs">
+			<div class="input">
+				<label for="x0">x0</label>
+				<input id="x0" type="number" min="0" step="1" />
+			</div>
+			<div class="input">
+				<label for="y0">y0</label>
+				<input id="y0" type="number" min="0" step="1" />
+			</div>
+			<div class="input">
+				<label for="X">X</label>
+				<input id="X" type="number" min="1" step="1" />
+			</div>
+			<div class="input">
+				<label for="N">N</label>
+				<input id="N" type="number" min="5" max="200" step="5" />
+			</div>
+		</section>
+		<section class="main-graph">
+			<canvas id="graph"></canvas>
+		</section>
 
-	<section class="error-graphs">
-		<canvas id="global-error"></canvas>
-		<canvas id="local-error"></canvas>
-	</section>
+		<section class="global-error">
+			<canvas id="global-error"></canvas>
+		</section>
+		<section class="local-error">
+			<canvas id="local-error"></canvas>
+		</section>
 
-	<section class="inputs">
-		x0
-		<input id="x0" type="number" min="0" step="1" />
-		y0
-		<input id="y0" type="number" min="0" step="1" />
-		X
-		<input id="X" type="number" min="1" step="1" />
-		N
-		<input id="N" type="number" min="5" max="200" step="5" />
-	</section>
+	</div>
 
 	<script src="./main.js" type="module"></script>
 </body>

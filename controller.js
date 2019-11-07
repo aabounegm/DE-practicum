@@ -121,7 +121,7 @@ export class SolutionGraph extends ChartController {
 					xAxes: [{
 						scaleLabel: {
 							display: true,
-							labelString: 'X',
+							labelString: 'x',
 						},
 					}],
 					yAxes: [{
