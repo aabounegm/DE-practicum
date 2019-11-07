@@ -3,7 +3,7 @@
  * @file The main entry of the entire program that uses classes and methods from other files
  */
 
-import { SolutionGraph, GlobalError } from './controller.js';
+import { SolutionGraph, GlobalError, LocalError } from './controller.js';
 import { DifferentialFunction } from './models.js';
 
 const initialValues = {
@@ -26,8 +26,12 @@ const mainGraph = document.getElementById('graph')
 // @ts-ignore
 const globalErrorGraph = document.getElementById('global-error')
 
+/** @type {HTMLCanvasElement} */
+// @ts-ignore
+const localErrorGraph = document.getElementById('local-error');
 
 const controller = new SolutionGraph(mainGraph, functions, initialValues);
-const errorController = new GlobalError(globalErrorGraph);
+const globalErrorController = new GlobalError(globalErrorGraph, functions);
+const localErrorController = new LocalError(localErrorGraph, functions);
 
 controller.buildChart();

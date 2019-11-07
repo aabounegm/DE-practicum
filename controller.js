@@ -97,7 +97,7 @@ export class SolutionGraph extends ChartController {
 		const improvedEuler = new ImprovedEuler(this.funcs.derivative.bind(this.funcs), config);
 		const rungeKutta = new RungeKutta(this.funcs.derivative.bind(this.funcs), config);
 
-		this.domain = Array.from({ length: 1 + (config.X - config.x0) / config.h },
+		this.domain = Array.from({ length: config.N },
 			(_, i) => (i * config.h + config.x0));
 		const xLabels = this.domain.map(x => x.toFixed(5));
 
@@ -162,49 +162,70 @@ export class SolutionGraph extends ChartController {
  * Manages the chart for showing the global error
  */
 export class GlobalError extends ChartController {
-	constructor(canvas) {
+	/**
+	 * @param {HTMLCanvasElement} canvas
+	 * @param {DifferentialFunction} funcs The function pair (exact and derivative) to compute
+	 */
+	constructor(canvas, funcs) {
 		super(canvas);
-		/** @type {point[]} */ this.euler = [];
-		/** @type {point[]} */ this.improvedEuler = [];
-		/** @type {point[]} */ this.rungeKutta = [];
+		this.funcs = funcs;
+		this.N = 0;
+		/** @type {point[]} */ this.eulerData = [];
+		/** @type {point[]} */ this.improvedEulerData = [];
+		/** @type {point[]} */ this.rungeKuttaData = [];
 	}
 
 	getData() {
-		const { euler, improvedEuler, rungeKutta } = this;
-		return { euler, improvedEuler, rungeKutta };
+		return {
+			euler: this.eulerData,
+			improvedEuler: this.improvedEulerData,
+			rungeKutta: this.rungeKuttaData
+		};
 	}
 
 	buildChart(eventData) {
 		const data = eventData.detail;
+		const { exact, config } = data;
+		if (config.N === this.N) return;
+		this.N = config.N;
 		if (this.chart)
 			this.chart.destroy();
 
-		const { domain, exact, euler, improvedEuler, rungeKutta, config } = data;
-		const xLabels = domain.map(x => x.toFixed(5));
+		const euler = new Euler(this.funcs.derivative.bind(this.funcs), config);
+		const improvedEuler = new ImprovedEuler(this.funcs.derivative.bind(this.funcs), config);
+		const rungeKutta = new RungeKutta(this.funcs.derivative.bind(this.funcs), config);
 
-		/**
-		 * Calculates the difference between the given point and the exact solution
-		 * @param {point} item
-		 * @param {number} index
-		 */
-		const diff = ({ x, y }, index) => ({ x, y: exact[index].y - y });
+		const domain = Array.from({ length: config.N }, (_, i) => i + 1);
 
-		this.euler = euler.map(diff);
-		this.improvedEuler = improvedEuler.map(diff);
-		this.rungeKutta = rungeKutta.map(diff);
+		this.eulerData = [];
+		this.improvedEulerData = [];
+		this.rungeKuttaData = [];
 
-		eventManager.dispatchEvent(new CustomEvent('errorsUpdated', {
+		domain.forEach(N => {
+			const diff = (dataset) => ({
+				x: N,
+				y: exact[N - 1].y - dataset[N - 1].y
+			});
+
+			const h = (config.X - config.x0) / N;
+
+			this.eulerData.push(diff(euler({ h })));
+			this.improvedEulerData.push(diff(improvedEuler({ h })));
+			this.rungeKuttaData.push(diff(rungeKutta({ h })));
+		});
+
+		eventManager.dispatchEvent(new CustomEvent('globalErrorUpdated', {
 			detail: this.getData(),
 		}));
 
 		this.chart = new Chart(this.ctx, {
 			type: 'line',
 			data: {
-				labels: xLabels,
+				labels: domain,
 				datasets: [
-					{ data: this.euler, label: 'Euler', borderColor: 'aqua', },
-					{ data: this.improvedEuler, label: 'Improved-Euler', borderColor: 'lime' },
-					{ data: this.rungeKutta, label: 'Runge-Kutta', borderColor: 'brown' },
+					{ data: this.eulerData, label: 'Euler', borderColor: 'aqua', },
+					{ data: this.improvedEulerData, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: this.rungeKuttaData, label: 'Runge-Kutta', borderColor: 'brown' },
 				],
 			},
 			options: {
@@ -223,6 +244,80 @@ export class GlobalError extends ChartController {
 						scaleLabel: {
 							display: true,
 							labelString: 'Last global error',
+						},
+					}],
+				},
+			},
+		});
+	}
+
+	_registerListeners() {
+		eventManager.addEventListener('approximationsUpdated', this.buildChart.bind(this));
+	}
+}
+
+export class LocalError extends ChartController {
+	getData() {
+		return {
+			euler: this.eulerData,
+			improvedEuler: this.improvedEulerData,
+			rungeKutta: this.rungeKuttaData
+		};
+	}
+	buildChart(eventData) {
+		const data = eventData.detail;
+		if (this.chart)
+			this.chart.destroy();
+
+		const { domain, euler, improvedEuler, rungeKutta } = data;
+		const xLabels = domain.map(x => x.toFixed(5));
+
+		/**
+		 * Calculates the difference between the global error at the current and previous points to get the local error
+		 * @param {point} item
+		 * @param {number} index
+		 * @param {point[]} arr
+		 */
+		const diff = (item, index, arr) => {
+			if (index === 0)
+				return { x: 0, y: 0 };
+			return { x: index, y: item.y - arr[index - 1].y };
+		};
+
+		this.eulerData = euler.map(diff);
+		this.improvedEulerData = improvedEuler.map(diff);
+		this.rungeKuttaData = rungeKutta.map(diff);
+
+		eventManager.dispatchEvent(new CustomEvent('localErrorUpdated', {
+			detail: this.getData(),
+		}));
+
+		this.chart = new Chart(this.ctx, {
+			type: 'line',
+			data: {
+				labels: xLabels,
+				datasets: [
+					{ data: this.eulerData, label: 'Euler', borderColor: 'aqua', },
+					{ data: this.improvedEulerData, label: 'Improved-Euler', borderColor: 'lime' },
+					{ data: this.rungeKuttaData, label: 'Runge-Kutta', borderColor: 'brown' },
+				],
+			},
+			options: {
+				title: {
+					text: 'Local error',
+					display: true,
+				},
+				scales: {
+					xAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'x',
+						},
+					}],
+					yAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'Local error',
 						},
 					}],
 				},
