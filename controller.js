@@ -239,7 +239,7 @@ export class GlobalError extends ErrorChartController {
 			 */
 			const diff = (dataset) => ({
 				x: N,
-				y: exact[N - 1].y - dataset[N - 1].y
+				y: this.funcs.exact(config.X) - dataset[N - 1].y
 			});
 
 			const h = (config.X - config.x0) / N;
@@ -300,7 +300,7 @@ export class LocalError extends ErrorChartController {
 		if (this.chart)
 			this.chart.destroy();
 
-		const { domain, euler, improvedEuler, rungeKutta } = data;
+		const { domain, euler, improvedEuler, rungeKutta, exact } = data;
 		const xLabels = domain.map(x => x.toFixed(5));
 
 		/**
@@ -312,7 +312,11 @@ export class LocalError extends ErrorChartController {
 		const diff = (item, index, arr) => {
 			if (index === 0)
 				return { x: 0, y: 0 };
-			return { x: index, y: item.y - arr[index - 1].y };
+			if (index >= exact.length)
+				return {};
+			const curGlobal = exact[index].y - item.y;
+			const prevGlobal = exact[index - 1].y - arr[index - 1].y;
+			return { x: item.x, y: curGlobal - prevGlobal };
 		};
 
 		this.eulerData = euler.map(diff);
